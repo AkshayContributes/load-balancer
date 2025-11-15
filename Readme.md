@@ -31,9 +31,17 @@ make run
 
 The demo shows:
 - Round-robin distribution across 3 backends
+- **HealthChecker automatically queries backends every 5 seconds**
 - Backend failure handling (automatic skip)
 - Automatic recovery when backends come back online
 - Error handling when all backends are down
+
+**What happens in the demo:**
+1. HealthChecker starts and begins querying `/health` endpoint every 5 seconds
+2. Load balancer selects alive backends in round-robin fashion
+3. When a backend crashes, HealthChecker detects it and marks it as offline
+4. Requests automatically route around the failed backend
+5. When backend recovers, HealthChecker detects recovery and includes it again
 
 ### Run Tests
 ```bash
@@ -174,7 +182,36 @@ backend3, _ := lb.SelectBackend()  // api3
 backend1, _ := lb.SelectBackend()  // api1 (cycles)
 ```
 
-### Example 2: Handle Failures
+### Example 2: With HealthChecker
+
+```go
+import (
+    "time"
+    "github.com/akshaykumarthakur/load-balancer/internal/healthcheck"
+)
+
+backends := []*backend.Backend{
+    backend.NewBackend("http://api1.example.com"),
+    backend.NewBackend("http://api2.example.com"),
+    backend.NewBackend("http://api3.example.com"),
+}
+
+lb, _ := balancer.New(backends)
+
+// Start automatic health checking (every 5 seconds)
+hc := healthcheck.NewHealthChecker(backends, 5*time.Second)
+hc.Start()
+defer hc.Stop()
+
+// Now the load balancer automatically:
+// ✓ Queries /health endpoint every 5 seconds
+// ✓ Marks servers alive/dead based on response
+// ✓ Routes only to alive servers
+// ✓ Detects recovery automatically
+backend, _ := lb.SelectBackend()  // Only gets healthy backends
+```
+
+### Example 3: Handle Failures
 ```go
 selected, err := lb.SelectBackend()
 if err != nil {

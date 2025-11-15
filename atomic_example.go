@@ -67,7 +67,8 @@ func exampleWithAtomic() {
 	fmt.Printf("Expected: %d\n", expected)
 	fmt.Printf("Got:      %d\n", counter.Load())
 	if counter.Load() == expected {
-		fmt.Println("✓ Perfect! All increments counted.\n")
+		fmt.Println("✓ Perfect! All increments counted.")
+		fmt.Println()
 	}
 }
 
